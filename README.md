@@ -43,7 +43,7 @@ Then open the plugin's Settings tab and fill in:
 | `api_key` | yes | | Sent as `Authorization: Bearer <key>`. |
 | `model` | yes | | The worker model's id. |
 | `provider` | no | | OpenRouter provider routing as JSON, sent as the request's `provider` field. For example `{"order": ["novita/fp8"], "allow_fallbacks": false}`. |
-| `temperature` | no | `0.2` | |
+| `temperature` | no | | Not sent when empty, so the provider's default applies. |
 | `max_tokens` | no | `64000` | Reasoning tokens count against this limit on most providers. |
 | `timeout_ms` | no | `60000` | Raise it for long or reasoning-heavy tasks. |
 

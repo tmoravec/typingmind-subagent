@@ -63,7 +63,8 @@ async function spawn_subagent(params, userSettings) {
     }
     return n;
   };
-  const temperature = numberSetting('temperature', 0.2, false, 0);
+  // Unset temperature is omitted from the request so the provider's default applies.
+  const temperature = numberSetting('temperature', undefined, false, 0);
   const maxTokens = numberSetting('max_tokens', 64000, true, 1);
   const timeoutMs = numberSetting('timeout_ms', 60000, true, 1);
 
@@ -121,7 +122,8 @@ async function spawn_subagent(params, userSettings) {
       ].join('\n'),
     },
   ];
-  const body = { model, messages, temperature, max_tokens: maxTokens };
+  const body = { model, messages, max_tokens: maxTokens };
+  if (temperature !== undefined) body.temperature = temperature;
   if (provider) body.provider = provider;
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };

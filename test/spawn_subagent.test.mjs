@@ -128,9 +128,8 @@ test('request: endpoint, headers, body shape and messages', async () => {
   assert.equal(lastRequest.headers.authorization, 'Bearer sk-test');
   assert.equal(lastRequest.headers['content-type'], 'application/json');
   const b = lastRequest.body;
-  assert.deepEqual(Object.keys(b).sort(), ['max_tokens', 'messages', 'model', 'temperature']);
+  assert.deepEqual(Object.keys(b).sort(), ['max_tokens', 'messages', 'model']);
   assert.equal(b.model, 'worker-1');
-  assert.equal(b.temperature, 0.2);
   assert.equal(b.max_tokens, 64000);
   assert.equal(b.messages.length, 2);
   assert.equal(b.messages[0].role, 'system');
@@ -153,6 +152,10 @@ test('request: numeric settings parsed from text', async () => {
   await spawn(params(), settings({ temperature: '0.7', max_tokens: '512' }));
   assert.equal(lastRequest.body.temperature, 0.7);
   assert.equal(lastRequest.body.max_tokens, 512);
+  await spawn(params(), settings({ temperature: '0' }));
+  assert.equal(lastRequest.body.temperature, 0);
+  await spawn(params(), settings({ temperature: '  ' }));
+  assert.equal('temperature' in lastRequest.body, false);
 });
 
 test('request: OpenRouter provider routing sent verbatim when set', async () => {

@@ -88,7 +88,11 @@ const userSettings = [
     placeholder: '{"order": ["novita/fp8"], "allow_fallbacks": false}',
     description: 'Optional. Sent as the request\'s "provider" field. Leave empty for other providers.',
   },
-  { name: 'temperature', label: 'Temperature', defaultValue: '0.2' },
+  {
+    name: 'temperature',
+    label: 'Temperature',
+    description: "Optional. Leave empty to use the provider's default.",
+  },
   { name: 'max_tokens', label: 'Max tokens', defaultValue: '64000' },
   { name: 'timeout_ms', label: 'Timeout (ms)', defaultValue: '60000' },
 ];
