@@ -93,8 +93,22 @@ const userSettings = [
     label: 'Temperature',
     description: "Optional. Leave empty to use the provider's default.",
   },
+  {
+    name: 'reasoning_effort',
+    label: 'Reasoning effort',
+    type: 'enum',
+    values: ['default', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none'],
+    defaultValue: 'default',
+    description: 'Optional. Sent as the OpenRouter "reasoning.effort" field. "default" sends nothing, so the model\'s own default applies.',
+  },
   { name: 'max_tokens', label: 'Max tokens', defaultValue: '64000' },
-  { name: 'timeout_ms', label: 'Timeout (ms)', defaultValue: '60000' },
+  { name: 'timeout_s', label: 'Timeout (s)', defaultValue: '60' },
+  {
+    name: 'proxy_password',
+    label: 'Proxy password',
+    type: 'password',
+    description: 'Optional. Sent as "X-Proxy-Password" for the Cloudflare Worker CORS proxy (see cors-proxy.js).',
+  },
 ];
 
 const overviewMarkdown = `## spawn_subagent

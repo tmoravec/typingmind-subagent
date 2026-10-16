@@ -112,10 +112,17 @@ test('A6: finish_reason length -> truncated true with partial text, no throw', a
 test('A7: 401 names api_key', async () => {
   handler = status(401, '{"error":"bad key"}');
   await assert.rejects(spawn(params(), settings()),
-    { message: 'Auth rejected (401). Check api_key in the plugin settings.' });
+    { message: 'Auth rejected (401). Check api_key (and proxy_password if you use a proxy) in the plugin settings.' });
 });
 
 // ---- Request assembly ----------------------------------------------------
+
+test('request: proxy_password is sent as X-Proxy-Password', async () => {
+  handler = reply('TYPE: answer\n---\nok');
+  await spawn(params(), settings({ proxy_password: 'hunter2' }));
+  assert.equal(lastRequest.headers['x-proxy-password'], 'hunter2');
+  assert.equal(lastRequest.headers.authorization, 'Bearer sk-test');
+});
 
 test('request: endpoint, headers, body shape and messages', async () => {
   handler = reply('TYPE: answer\n---\nok');
@@ -127,6 +134,7 @@ test('request: endpoint, headers, body shape and messages', async () => {
   assert.equal(lastRequest.url, '/v1/chat/completions');
   assert.equal(lastRequest.headers.authorization, 'Bearer sk-test');
   assert.equal(lastRequest.headers['content-type'], 'application/json');
+  assert.equal(lastRequest.headers['x-proxy-password'], undefined);
   const b = lastRequest.body;
   assert.deepEqual(Object.keys(b).sort(), ['max_tokens', 'messages', 'model']);
   assert.equal(b.model, 'worker-1');
@@ -138,6 +146,17 @@ test('request: endpoint, headers, body shape and messages', async () => {
   assert.equal(b.messages[1].role, 'user');
   assert.equal(b.messages[1].content, 'TASK\nSummarise the text.\n\nCONTEXT\nSome text.\n\nOUTPUT FORMAT\nJSON object');
   assert.doesNotMatch(JSON.stringify(b), /Summarising/);
+});
+
+test('request: reasoning_effort is sent as reasoning.effort, validated, omitted when empty', async () => {
+  handler = reply('ok');
+  await spawn(params(), settings({ reasoning_effort: ' High ' }));
+  assert.deepEqual(lastRequest.body.reasoning, { effort: 'high' });
+  await spawn(params(), settings());
+  assert.equal('reasoning' in lastRequest.body, false);
+  await spawn(params(), settings({ reasoning_effort: 'default' }));
+  assert.equal('reasoning' in lastRequest.body, false);
+  await assert.rejects(spawn(params(), settings({ reasoning_effort: 'max' })), /reasoning_effort must be one of/);
 });
 
 test('request: default output format, base_url already ending in /chat/completions', async () => {
@@ -303,7 +322,7 @@ test('error: other 4xx surfaces status and body', async () => {
 
 test('error: timeout', async () => {
   handler = () => {}; // never responds
-  await assert.rejects(spawn(params(), settings({ timeout_ms: '100' })), /^Error: Subagent timed out after 100 ms\.$/);
+  await assert.rejects(spawn(params(), settings({ timeout_s: '0.1' })), /^Error: Subagent timed out after 0.1 s\.$/);
 });
 
 test('error: network failure names host and CORS', async () => {
@@ -368,6 +387,6 @@ test('plugin.json is in sync with spawn_subagent.js and well-formed', () => {
   assert.deepEqual(fn.openaiSpec.parameters.required, ['task', 'context']);
   assert.match(plugin.dynamicContextEndpoints[0].staticContent, /runs one task on \{model\} and returns text/);
   assert.deepEqual(plugin.userSettings.map((s) => s.name), [
-    'base_url', 'api_key', 'model', 'provider', 'temperature', 'max_tokens', 'timeout_ms',
+    'base_url', 'api_key', 'model', 'provider', 'temperature', 'reasoning_effort', 'max_tokens', 'timeout_s', 'proxy_password',
   ]);
 });

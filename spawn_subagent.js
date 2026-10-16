@@ -49,6 +49,7 @@ async function spawn_subagent(params, userSettings) {
   const baseUrl = setting('base_url', '').trim();
   const model = setting('model', '').trim();
   const apiKey = setting('api_key', '').trim();
+  const proxyPassword = setting('proxy_password', '').trim();
 
   if (!baseUrl) throw notConfigured('base_url');
   if (!model) throw notConfigured('model');
@@ -66,7 +67,14 @@ async function spawn_subagent(params, userSettings) {
   // Unset temperature is omitted from the request so the provider's default applies.
   const temperature = numberSetting('temperature', undefined, false, 0);
   const maxTokens = numberSetting('max_tokens', 64000, true, 1);
-  const timeoutMs = numberSetting('timeout_ms', 60000, true, 1);
+  const timeoutS = numberSetting('timeout_s', 60, false, 0.001);
+
+  const EFFORTS = ['xhigh', 'high', 'medium', 'low', 'minimal', 'none'];
+  let reasoningEffort = setting('reasoning_effort', '').trim().toLowerCase();
+  if (reasoningEffort === 'default') reasoningEffort = '';
+  if (reasoningEffort && !EFFORTS.includes(reasoningEffort)) {
+    throw misconfigured('reasoning_effort', `must be one of ${EFFORTS.join(', ')} (got "${reasoningEffort}")`);
+  }
 
   // OpenRouter provider routing, sent verbatim as the request's `provider` field.
   let provider;
@@ -125,12 +133,14 @@ async function spawn_subagent(params, userSettings) {
   const body = { model, messages, max_tokens: maxTokens };
   if (temperature !== undefined) body.temperature = temperature;
   if (provider) body.provider = provider;
+  if (reasoningEffort) body.reasoning = { effort: reasoningEffort };
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+  if (proxyPassword) headers['X-Proxy-Password'] = proxyPassword;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  const timedOut = () => new Error(`Subagent timed out after ${timeoutMs} ms.`);
+  const timer = setTimeout(() => controller.abort(), timeoutS * 1000);
+  const timedOut = () => new Error(`Subagent timed out after ${timeoutS} s.`);
   const networkError = () => new Error(
     `Network error reaching ${host}. In the personal version the provider must allow CORS ` +
     'from the sandbox; otherwise route through a proxy.');
@@ -156,7 +166,7 @@ async function spawn_subagent(params, userSettings) {
 
   const snippet = raw.slice(0, BODY_SNIPPET).replace(/\s+/g, ' ').trim();
   if (res.status === 401 || res.status === 403) {
-    throw new Error(`Auth rejected (${res.status}). Check api_key in the plugin settings.`);
+    throw new Error(`Auth rejected (${res.status}). Check api_key (and proxy_password if you use a proxy) in the plugin settings.`);
   }
   if (res.status === 429 || res.status >= 500) {
     throw new Error(`${res.status} from ${host}. Retry, or delegate a smaller task.${snippet ? ' ' + snippet : ''}`);

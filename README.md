@@ -44,7 +44,12 @@ Then open the plugin's Settings tab and fill in:
 | `model` | yes | | The worker model's id. |
 | `provider` | no | | OpenRouter provider routing as JSON, sent as the request's `provider` field. For example `{"order": ["novita/fp8"], "allow_fallbacks": false}`. |
 | `temperature` | no | | Not sent when empty, so the provider's default applies. |
+| `reasoning_effort` | no | | Dropdown: `default`, `xhigh`, `high`, `medium`, `low`, `minimal` or `none`. Sent as OpenRouter's `reasoning: {"effort": ...}`. Not sent for `default` or when empty. |
 | `max_tokens` | no | `64000` | Reasoning tokens count against this limit on most providers. |
-| `timeout_ms` | no | `60000` | Raise it for long or reasoning-heavy tasks. |
+| `timeout_s` | no | `60` | Raise it for long or reasoning-heavy tasks. |
 
 In the personal version of TypingMind the plugin runs in the browser, so the provider must allow CORS requests from TypingMind.
+
+For providers without CORS (e.g. Ollama Cloud), deploy `cors-proxy.js` as a Cloudflare Worker (Workers & Pages → Create → Hello World → Edit code → paste → Deploy) and set Base URL to `https://<worker>.workers.dev/v1`. The Worker only forwards to `https://ollama.com`. The API key stays in the plugin settings and is passed through.
+
+The Worker rejects requests without the right `X-Proxy-Password` header. Set it under the Worker's Settings → Variables and Secrets as a secret named `PROXY_PASSWORD`, and put the same value in the plugin's `proxy_password` setting. This is separate from the Ollama API key.
